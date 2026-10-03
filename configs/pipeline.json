@@ -1,0 +1,46 @@
+{
+  "data_root": "data/datafull",
+  "weights_root": "weights",
+  "work_root": "outputs",
+  "device": "cuda:0",
+  "topology_checkpoint": "identity_topology_seed7.pt",
+  "training": {
+    "epochs": 5,
+    "early_stopping_patience": 2,
+    "lr": 0.01,
+    "optimizer": "sgd",
+    "batch_size": 8,
+    "hidden_dim": 256,
+    "patterns": 16,
+    "alpha": 0.5,
+    "history_weight": 0.5,
+    "history_size": 4,
+    "purification_floor": 0.05,
+    "expected_frontend": "autoassign_bytetrack",
+    "expected_insertion_point": "post_mia_output",
+    "expected_pooling": "assigned_fpn_roi_align_3x3_meanmax"
+  },
+  "online_policy": {
+    "base_margin": 0.0,
+    "candidate_growth": 0.0,
+    "candidate_topk": 1,
+    "minimum_pair_support": 2,
+    "maximum_pair_gap": 1,
+    "causal_collision_guard": true,
+    "minimum_score": 0.7542553191489361
+  },
+  "recovery": {
+    "maximum_age": 5,
+    "maximum_overlap": 0.1,
+    "velocity_decay": 1.0,
+    "velocity_estimator": "median",
+    "minimum_observations": 2,
+    "require_other_view": false
+  },
+  "detector_training": {
+    "esod_epochs": 5,
+    "autoassign_epochs": 60,
+    "batch_size": 1,
+    "image_size": 1280
+  }
+}
