@@ -6,6 +6,12 @@ This project provides code for generating cross-view tracking results from image
 
 The following videos show the final tracking results. Click the play button to watch each demonstration.
 
+The colors in both videos indicate cross-view matching results:
+
+- **Green:** Correct matches.
+- **Yellow:** Missed matches.
+- **Red:** Incorrect matches.
+
 ### Demo 1
 
 https://github.com/user-attachments/assets/409bdeee-6af9-4926-9bd7-33be25e50059
