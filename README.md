@@ -2,6 +2,18 @@
 
 This project provides code for generating cross-view tracking results from images captured by two UAVs.
 
+## Demonstration Videos
+
+The following videos show the final tracking results. Click the play button to watch each demonstration.
+
+### Demo 1
+
+https://github.com/user-attachments/assets/409bdeee-6af9-4926-9bd7-33be25e50059
+
+### Demo 2
+
+https://github.com/user-attachments/assets/16277a3b-71b1-44ea-8c3e-be10ad0ddb97
+
 ## Environment Setup
 
 The validated environment uses Windows, Python 3.12, PyTorch 2.12.1 with CUDA 12.6, torchvision 0.27.1, MMCV 1.5.0, MMDetection 2.28.2, and MMClassification 0.23.2. Other dependency versions are listed in `requirements.txt`.
