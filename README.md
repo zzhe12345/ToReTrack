@@ -1,12 +1,12 @@
-# 多无人机多目标跟踪
+# ToReTrack: Multi-UAV Multi-Object Tracking
 
-本项目提供从双视角图像到最终跨视角跟踪结果的代码。
+This project provides code for generating cross-view tracking results from images captured by two UAVs.
 
-## 环境安装
+## Environment Setup
 
-验证环境为 Windows、Python 3.12、PyTorch 2.12.1 + CUDA 12.6、torchvision 0.27.1、MMCV 1.5.0、MMDetection 2.28.2、MMClassification 0.23.2。其他依赖版本在 `requirements.txt` 中。
+The validated environment uses Windows, Python 3.12, PyTorch 2.12.1 with CUDA 12.6, torchvision 0.27.1, MMCV 1.5.0, MMDetection 2.28.2, and MMClassification 0.23.2. Other dependency versions are listed in `requirements.txt`.
 
-安装 Python 3.12 和兼容的 NVIDIA 驱动后，在项目目录执行：
+After installing Python 3.12 and a compatible NVIDIA driver, run the following commands from the project directory:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File setup_environment.ps1
@@ -15,79 +15,79 @@ $env:PYTHONPATH = 'src;third_party/mia_net_official'
 python -B check_runtime.py
 ```
 
-## 下载后训练，再直接测试
+## Train and Test
 
-准备好外部 MDMT 数据并安装依赖后，执行：
+After preparing the external MDMT dataset and installing the dependencies, run:
 
 ```powershell
 python train.py --data-root "E:/MDMT/datafull"
 python test.py
 ```
 
-也可以先修改 `configs/pipeline.json` 中的路径，然后直接运行 `python train.py`。
+Alternatively, update the paths in `configs/pipeline.json` and run `python train.py`.
 
-训练结束自动生成 `<work_root>/trained_pipeline.json`。`test.py` 自动读取该配置，加载新训练权重，执行完整测试流程和官方指标评估，不用手动复制权重或修改内部路径。若使用了另一工作目录，则传入 `python test.py --config <work_root>/trained_pipeline.json`。
+Training automatically generates `<work_root>/trained_pipeline.json`. The `test.py` entry point reads this configuration, loads the newly trained weights, and runs the complete test pipeline and official evaluation. No manual copying of weights or changes to internal paths are required. If you use a different working directory, run `python test.py --config <work_root>/trained_pipeline.json`.
 
 ```powershell
-# 可选初始权重，必须与当前模型结构相容
+# Optional initial weights must match the current model architecture
 python train.py --initial-esod "E:/models/esod.pt" --initial-autoassign "E:/models/autoassign.pth"
 
-# 已有冻结检测器权重，只训练拓扑分支
+# Train only the topology branch using existing frozen detector weights
 python train.py --stage topology
 
-# 训练完成后，先用一个序列前三帧检查测试流程
+# After training, check the test pipeline on the first three frames of one sequence
 python test.py --scenes 26 --max-frames 3 --visualize
 ```
 
-`--smoke` 会减少训练轮数和检测器图像尺寸，仅用于工程运行检查，不能用于复现完整指标。完整训练参数在 `detector_training` 和 `training` 中。阈值只从验证集选择；若验证集没有可靠的身份修复证据，测试配置会禁用拓扑身份修改并明确提示，保留 MIA 关联。
+The `--smoke` option reduces the number of training epochs and detector image sizes. It is intended only for checking that the pipeline runs and cannot reproduce full evaluation scores. Full training parameters are specified in `detector_training` and `training`. Thresholds are selected using only the validation set. If the validation set provides no reliable evidence for identity repair, the test configuration disables topology-based identity corrections, reports this explicitly, and retains the MIA associations.
 
-## 推理与评估
+## Inference and Evaluation
 
 ```powershell
-# 完整单序列推理
+# Run inference on a complete sequence
 python run_pipeline.py --phase infer --split test --scenes 26
 
-# 前三帧运行检查，可选带标注可视化
+# Check the first three frames, optionally with visualizations against annotations
 python run_pipeline.py --phase infer --split test --scenes 26 --max-frames 3 --visualize
 
-# 对完整结果评估；三帧结果则同样添加 --max-frames 3
+# Evaluate complete results; also add --max-frames 3 for three-frame results
 python run_pipeline.py --phase evaluate --split test --scenes 26
 ```
 
-最终 JSON 使用 `frame=0`、`frame=1` 等键，每个目标为 `[id, x1, y1, x2, y2]`。双视角相同 ID 表示关联到同一目标。
+The final JSON files use keys such as `frame=0` and `frame=1`. Each target is represented as `[id, x1, y1, x2, y2]`. The same ID in both views indicates that the detections are associated with the same target.
 
-评估入口从外部 XML 生成零基帧 MOT 标注和一基帧官方 MDA 标注，再调用 `evaluate_mia_metrics.py` 与上游 `mango_eval.py`。完整指标需在完整测试序列上计算。
+The evaluation entry point converts external XML annotations into zero-based MOT annotations and one-based annotations for the official MDA evaluator, then calls `evaluate_mia_metrics.py` and the upstream `mango_eval.py`. Full evaluation scores must be computed on complete test sequences.
 
-测试入口固定评估完整方法的最终结果：
+The test entry point evaluates only the final results of the complete method:
 
-| 指标   | 视角 1 | 视角 2 | 总体      |
-| ---- | ---- | ---- | ------- |
-| MDA  | —    | —    | 双视角关联得分 |
-| MOTA | 分别计算 | 分别计算 | 两视角联合计算 |
-| IDF1 | 分别计算 | 分别计算 | 两视角联合计算 |
-| IDS  | 分别计数 | 分别计数 | 两视角次数相加 |
+| Metric | View 1 | View 2 | Overall |
+|---|---|---|---|
+| MDA | — | — | Cross-view association score |
+| MOTA | Computed separately | Computed separately | Computed jointly across both views |
+| IDF1 | Computed separately | Computed separately | Computed jointly across both views |
+| IDS | Counted separately | Counted separately | Sum of both views |
 
-## 单独运行各环节
+## Run Individual Stages
 
-各阶段也可独立运行，参数用 `--help` 查看。`run_pipeline.py --phase prepare --split train` 和 `--split val` 构建冻结检测器的拓扑特征，`--phase train` 训练拓扑分支。统一的 `train.py` 已自动串联这些步骤。
+Each stage can also be run independently. Use `--help` to view its arguments. The commands `run_pipeline.py --phase prepare --split train` and `--split val` build topology features using frozen detectors; `--phase train` trains the topology branch. The unified `train.py` entry point already connects these steps automatically.
 
-ESOD 结构和超参数在 `configs/uavdt_yolov5m.yaml`、`configs/esod_hyp.yaml`；AutoAssign 配置及实际使用的基础配置保留在 `third_party/mia_net_official/configs/`。默认检测器训练轮数分别为 5 和 60，文件名用于稳定加载；修改训练轮数不会改变导出文件名。
+The ESOD architecture and hyperparameters are defined in `configs/uavdt_yolov5m.yaml` and `configs/esod_hyp.yaml`. The AutoAssign configuration and its required base configurations are retained in `third_party/mia_net_official/configs/`. The default detector training schedules use 5 and 60 epochs, respectively. Exported filenames remain fixed for consistent loading; changing the number of training epochs does not change these filenames.
 
-## 代码导航
+## Code Guide
 
-| 环节         | 入口 / 实现                                                                                |
-| ---------- | -------------------------------------------------------------------------------------- |
-| 完整训练 / 测试  | `train.py`、`test.py`                                                                   |
-| 数据转换与检测器训练 | `prepare_detection_data.py`、`train_esod.py`、`train_autoassign.py`                      |
-| 分阶段流程      | `run_pipeline.py`                                                                      |
-| 检测         | `generate_esod_detection_cache.py`、`src/uav_tracking/generate_esod_detection_cache.py` |
-| 跟踪与几何关联    | `run_mia_frontend.py`、`run_mia_official_geometry.py`                                   |
-| 拓扑特征       | `build_mia_frame_topology_cache.py`、`src/uav_tracking/mia_features.py`                 |
-| 拓扑模型和训练    | `src/uav_tracking/identity_topology_model.py`、`train_identity_topology.py`             |
-| 身份修正       | `apply_identity_topology_to_mia.py`                                                    |
-| 因果恢复       | `apply_mia_causal_forward_fill.py`                                                     |
-| 特征协议检查     | `check_feature_protocol.py`                                                            |
-| 评估和标注转换    | `evaluate_mia_metrics.py`、`build_mot_gt_from_xml.py`                                   |
-| 可视化        | `visualize_results.py`                                                                 |
+| Stage | Entry Point / Implementation |
+|---|---|
+| Complete training / testing | `train.py`, `test.py` |
+| Data conversion and detector training | `prepare_detection_data.py`, `train_esod.py`, `train_autoassign.py` |
+| Stage-by-stage pipeline | `run_pipeline.py` |
+| Detection | `generate_esod_detection_cache.py`, `src/uav_tracking/generate_esod_detection_cache.py` |
+| Tracking and geometric association | `run_mia_frontend.py`, `run_mia_official_geometry.py` |
+| Topology features | `build_mia_frame_topology_cache.py`, `src/uav_tracking/mia_features.py` |
+| Topology model and training | `src/uav_tracking/identity_topology_model.py`, `train_identity_topology.py` |
+| Identity correction | `apply_identity_topology_to_mia.py` |
+| Causal recovery | `apply_mia_causal_forward_fill.py` |
+| Feature protocol checks | `check_feature_protocol.py` |
+| Evaluation and annotation conversion | `evaluate_mia_metrics.py`, `build_mot_gt_from_xml.py` |
+| Visualization | `visualize_results.py` |
 
-代码注释说明输入输出、时序约束、特征池化和帧编号约定。`tests/` 是源代码测试，不包含实验结果；安装 pytest 后执行 `python -B -m pytest -q`。
+Code comments describe inputs and outputs, temporal constraints, feature pooling, and frame-index conventions. The `tests/` directory contains source-code tests and no experiment results. After installing pytest, run `python -B -m pytest -q`.
